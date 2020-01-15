@@ -94,6 +94,7 @@ class TradeService {
       const splitHTML = this.splitHTML(html);
       splitHTMLData.push(splitHTML);
     });
+    // ! inefficient On^2  going on here.
     splitHTMLData.forEach((html: string[]) => {
       const [tradedFrom, tradedTo] = html;
       const tradeData = [

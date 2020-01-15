@@ -16,14 +16,8 @@ class SearchController {
     let tradeIndices: number[] = [];
     $(transactionSelector, playerHTML).each(
       (i: number, ele: CheerioElement) => {
-        if (
-          $(ele)
-            .text()
-            .toLowerCase()
-            .includes('traded by')
-        ) {
-          tradeIndices.push(i);
-        }
+        const isTradeElement = $(ele).text().toLowerCase().includes('traded by');
+        if (isTradeElement) tradeIndices.push(i);
       }
     );
     return tradeIndices;

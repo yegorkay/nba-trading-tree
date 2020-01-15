@@ -4,7 +4,7 @@ too much HTML parsed when we search:
 
 Incorrect data when we search:
 
-- Shaun Livingston
-- Kendrick Perkins
+- Shaun Livingston // 132 items in first entry
+- Kendrick Perkins // 150 items
 
 Seems to be the first entry in the trades array is incorrect

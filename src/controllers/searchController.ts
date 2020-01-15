@@ -97,12 +97,13 @@ class SearchController {
   ): ITradeData {
     let result: ITradeData = {};
 
+    const foundPlayersArray: PlayerID[][] = tradeService.getAllPlayers(
+      html,
+      foundTradeIndices
+    );
+
     for (let i = 0; i < foundTradeIndices.length; i++) {
       const foundTradeIndex = foundTradeIndices[i];
-      const foundPlayersArray: PlayerID[][] = tradeService.getAllPlayers(
-        html,
-        foundTradeIndices
-      );
       result[foundTradeDates[foundTradeIndex]] = foundPlayersArray[i];
     }
     return result;

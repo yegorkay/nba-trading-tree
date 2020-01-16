@@ -16,7 +16,10 @@ class SearchController {
     let tradeIndices: number[] = [];
     $(transactionSelector, playerHTML).each(
       (i: number, ele: CheerioElement) => {
-        const isTradeElement = $(ele).text().toLowerCase().includes('traded by');
+        const isTradeElement = $(ele)
+          .text()
+          .toLowerCase()
+          .includes('traded by');
         if (isTradeElement) tradeIndices.push(i);
       }
     );
@@ -69,7 +72,6 @@ class SearchController {
   async getSearchResults(page: Page, html: string): Promise<ISearchResult> {
     const foundTradeIndices = await this.getTradeIndices(page, page.url());
     const foundTradeDates = tradeController.getTradeDates(html);
-
     const trades = this.getTradesInDate(
       foundTradeIndices,
       foundTradeDates,

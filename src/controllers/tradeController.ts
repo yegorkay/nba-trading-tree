@@ -20,7 +20,6 @@ class TradeController {
   public getTradeDates(html: string): string[] {
     const transactionDateSelector: string = `#div_transactions span p.transaction strong:first-of-type`;
     let dateArray: string[] = [];
-
     $(transactionDateSelector, html).each((_i: number, ele: CheerioElement) => {
       return dateArray.push(formatter.formatDate($(ele).text()));
     });

@@ -5,19 +5,18 @@ import he from 'he';
 
 class TradeService {
   /**
-  * Gets the team abbreviation found in a `data-attr` tag for the given HTML.
-  * @param html The HTML context.
-  * @param index Used as part of a CSS selector to find HTML where a trade occurs.
-  * @returns An array of HTML strings.
-  */
+   * Gets the team abbreviation found in a `data-attr` tag for the given HTML.
+   * @param html The HTML context.
+   * @param index Used as part of a CSS selector to find HTML where a trade occurs.
+   * @returns An array of HTML strings.
+   */
   private splitHTML(html: string, index?: number): string[] {
-
     /** If the index is not passed, we are reading already parsed HTML,
      * and more likely an HTML string that was a part of a multi-team trade */
     if (!index) return html.split('to the ');
 
     const transactionHTML = $(
-      `${transactionSelector}:nth-child(${index + 1})`,
+      `${transactionSelector}:nth-child(${index})`,
       html
     ).html();
 
@@ -102,7 +101,7 @@ class TradeService {
         ...this.getPlayersInSection(tradedFrom, tradedTo, true)
       ];
       playerData.push(...tradeData);
-    })
+    });
     return playerData;
   }
   /**
@@ -138,10 +137,13 @@ class TradeService {
    * @param html The HTML page of the player we have searched for.
    * @returns An array of PlayerID arrays, where each array is a trade date found.
    */
-  public getAllPlayers(html: string, foundTradeIndices: number[]): PlayerID[][] {
+  public getAllPlayers(
+    html: string,
+    foundTradeIndices: number[]
+  ): PlayerID[][] {
     let results: PlayerID[][] = [];
     for (let i = 0; i < foundTradeIndices.length; i++) {
-      results.push(this.getPlayerData(html, foundTradeIndices[i]));
+      results.push(this.getPlayerData(html, foundTradeIndices[i] + 1));
     }
     return results;
   }

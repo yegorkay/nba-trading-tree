@@ -63,11 +63,10 @@ class TradeController {
   ) {
     let data: { [player: string]: string[] } = {};
     for (const playerURL of playerURLs) {
-      await page.goto(`${baseURL}${playerURL}`);
+      await page.goto(`${baseURL}/players/${playerURL}`);
 
       const playerHTML = await page.content();
-      const playerName = $('h1', playerHTML).text();
-
+      const playerName = formatter.getPlayerName(playerHTML);
       const dateArray = this.getTradeDates(playerHTML);
       const dateIndices = this.getDateIndices(dateArray, date);
       const playerURLs = this.getPlayerURLs(dateIndices, playerHTML);

@@ -6,7 +6,7 @@ import $ from 'cheerio';
 import puppeteer, { Page, Browser } from 'puppeteer';
 
 const playerDemo = '/players/n/nashst01.html';
-const playerTest = `${baseURL}${playerDemo}`;
+// const playerTest = `${baseURL}${playerDemo}`;
 
 class TradeController {
   private getDateIndices(dates: string[], dateMatch: string): number[] {
@@ -40,10 +40,11 @@ class TradeController {
     return playerURLs;
   }
 
-  private async traverse(date: string) {
+  private async traverse(playerId: string, date: string) {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto(playerTest);
+    const playerURL = formatter.getPlayerURL(playerId);
+    await page.goto(playerURL);
 
     const html = await page.content();
 
@@ -80,7 +81,8 @@ class TradeController {
   }
 
   public async getAllTransactions(req: Request, res: Response) {
-    const travData = await this.traverse(req.query.date);
+    const { date, id } = req.query;
+    const travData = await this.traverse(id, date);
     res.send({ data: travData });
   }
 }

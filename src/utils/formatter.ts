@@ -1,6 +1,7 @@
 import $ from 'cheerio';
 import moment from 'moment';
 import { transactionSelector } from '../settings';
+import { baseURL } from '../settings';
 
 class FormatController {
   /**
@@ -22,12 +23,13 @@ class FormatController {
    * '#div_transactions span:nth-child(n+1) p a[href*="players"]'
    */
   public generatePlayerURLSelector(dateIndices: number[]): string {
+    console.log(dateIndices);
     if (dateIndices.length > 1) {
       return `${transactionSelector}:nth-child(n+${
         dateIndices[0]
-      }):nth-child(-n+${
+        }):nth-child(-n+${
         dateIndices[dateIndices.length - 1]
-      }) p a[href*="players"]`;
+        }) p a[href*="players"]`;
     }
     return `${transactionSelector}:nth-child(n+${dateIndices[0]}) p a[href*="players"]`;
   }
@@ -54,7 +56,7 @@ class FormatController {
     const side = to ? 'to' : 'from';
     return $(
       `${transactionSelector}:nth-child(${index +
-        1}) p.transaction a[data-attr-${side}]`,
+      1}) p.transaction a[data-attr-${side}]`,
       html
     ).attr(`data-attr-${side}`);
   }
@@ -68,6 +70,14 @@ class FormatController {
    */
   public getPlayerName(htmlContext: string): string {
     return $('h1', htmlContext).text();
+  }
+  /**
+  * Returns the player URL by passing the player id.
+  * @param playerId - The player id.
+  * @return Player URL.
+  */
+  public getPlayerURL(playerId: string) {
+    return `${baseURL}/players/${playerId[0]}/${playerId}.html`;
   }
 }
 

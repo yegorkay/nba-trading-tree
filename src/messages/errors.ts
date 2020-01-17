@@ -8,5 +8,15 @@ export const errors = {
         location: 'query'
       }
     ]
+  }),
+  dateNotFound: () => ({
+    errors: [
+      {
+        value: 'date',
+        msg: 'Could not find the date provided.',
+        param: 'date',
+        location: 'query'
+      }
+    ]
   })
 };

@@ -22,7 +22,6 @@ class FormatController {
    * '#div_transactions span:nth-child(n+1) p a[href*="players"]'
    */
   public generatePlayerURLSelector(dateIndices: number[]): string {
-    console.log(dateIndices, 'dateIndices');
     if (dateIndices.length > 1) {
       return `${transactionSelector}:nth-child(n+${
         dateIndices[0]

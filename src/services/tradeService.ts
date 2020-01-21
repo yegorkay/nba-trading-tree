@@ -1,3 +1,4 @@
+import { formatter } from './../utils/formatter';
 import $ from 'cheerio';
 import { PlayerID } from '../models';
 import { transactionSelector } from '../settings';
@@ -74,63 +75,101 @@ class TradeService {
         ? this.getTeam(tradedFromCtx, !swap)
         : this.getTeam(tradedToCtx, true);
 
-      data.push(
-        new PlayerID($(ele).text(), $(ele).attr('href'), tradedFrom, tradedTo)
+      const player = new PlayerID(
+        $(ele).text(),
+        $(ele).attr('href'),
+        tradedFrom,
+        tradedTo
       );
+
+      data.push(player);
     });
     return data;
   }
   /**
    * Gets all players involved in a multi-team trade for a given date.
-   * @param dividedHTML The array of HTML trade strings.
+   * @param dividedTradeHTML The array of HTML trade strings.
+   * @param playerSearchHTML The html of the player we are searching for. This is used to append their information in the search result.
    * @returns An array of PlayerIDs.
    */
-  private getMultiTradeData(dividedHTML: string[]): PlayerID[] {
+  private getMultiTradeData(
+    dividedTradeHTML: string[],
+    playerSearchHTML: string
+  ): PlayerID[] {
     const splitHTMLData: string[][] = [];
     const playerData: PlayerID[] = [];
 
-    dividedHTML.forEach((html) => {
+    dividedTradeHTML.forEach((html) => {
       const splitHTML = this.splitHTML(html);
       splitHTMLData.push(splitHTML);
     });
     // ! inefficient On^2  going on here.
-    splitHTMLData.forEach((html: string[]) => {
+    splitHTMLData.forEach((html: string[], i: number) => {
       const [tradedFrom, tradedTo] = html;
+      /** This variable is used so we don't push in the player we searched
+       * for multiple times. The player we searched for is always the first
+       * player in the search result */
+      const isFirstTrade = i === 0;
+      const searchedPlayer = this.getSearchedPlayerData(playerSearchHTML, html);
       const tradeData = [
         ...this.getPlayersInSection(tradedFrom, tradedTo),
         ...this.getPlayersInSection(tradedFrom, tradedTo, true)
       ];
+
+      if (isFirstTrade) playerData.push(searchedPlayer);
+
       playerData.push(...tradeData);
     });
     return playerData;
   }
   /**
    * Gets all players involved in a trade for a given date.
-   * @param html The HTML page of the player we have searched for.
+   * @param playerHTML The HTML page of the player we have searched for.
    * @param index The index is used as an argument for `splitHTML(html, index)`
    * which is used to find HTML where a trade occurs.
    * @returns An array of PlayerIDs.
    */
-  private getPlayerData(html: string, index: number): PlayerID[] {
-    const splitHTML = this.splitHTML(html, index);
+  private getPlayerData(playerHTML: string, index: number): PlayerID[] {
+    const splitHTML = this.splitHTML(playerHTML, index);
     if (splitHTML.length > 0) {
       const normalTrade = splitHTML.length === 2;
       if (normalTrade) {
         const [tradedFrom, tradedTo] = splitHTML;
         const tradeData = [
+          /** Appending the searched player to the beginning of the resulting array. */
+          this.getSearchedPlayerData(playerHTML, splitHTML),
           ...this.getPlayersInSection(tradedFrom, tradedTo),
           ...this.getPlayersInSection(tradedFrom, tradedTo, true)
         ];
         return tradeData;
       } else {
-        /** Removing first element as we don't need
-         * the trade data for the player we are searching for */
-        splitHTML.shift();
-        const multiTradeData = this.getMultiTradeData(splitHTML);
+        const multiTradeData = this.getMultiTradeData(splitHTML, playerHTML);
         return multiTradeData;
       }
     }
     return [];
+  }
+  /**
+   * Gets the information for the player that we searched.
+   * @param playerHTML The HTML page of the player we have searched for.
+   * @param splitHTML The split HTML where one side of the array denotes `tradedFrom`, and the other `tradedTo`.
+   * @returns The PlayerID.
+   * @example
+   * PlayerID {
+        "name": "Kawhi Leonard",
+        "url": "l/leonaka01.html",
+        "tradedFrom": "SAS",
+        "tradedTo": "TOR"
+      }
+   */
+  getSearchedPlayerData(playerHTML: string, splitHTML: string[]): PlayerID {
+    const [tradedFrom, tradedTo] = splitHTML;
+    return new PlayerID(
+      formatter.getPlayerName(playerHTML),
+      $('#inner_nav > ul > li.current > a', playerHTML).attr('href'),
+      this.getTeam(tradedFrom),
+      this.getTeam(tradedTo, true)
+    );
   }
   /**
    * Gets all players that were ever involved in a trade.

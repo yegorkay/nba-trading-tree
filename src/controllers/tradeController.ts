@@ -5,15 +5,23 @@ import { Response, Request } from 'express';
 import $ from 'cheerio';
 import puppeteer, { Page, Browser } from 'puppeteer';
 
-const playerDemo = '/players/n/nashst01.html';
-// const playerTest = `${baseURL}${playerDemo}`;
+interface IPlayerParams {
+  parentPlayer: string;
+  playerURLs: string[];
+  date: string;
+}
+
+interface IPageParams {
+  page: Page;
+  browser: Browser;
+}
 
 class TradeController {
   private getDateIndices(dates: string[], dateMatch: string): number[] {
     let indexes: number[] = [];
-    for (let i = 0; i < dates.length; i++) {
-      if (dates[i] === dateMatch) indexes.push(i + 1);
-    }
+    dates.forEach((date, i) => {
+      if (date === dateMatch) indexes.push(i + 1);
+    });
     return indexes;
   }
 
@@ -47,31 +55,50 @@ class TradeController {
     await page.goto(playerURL);
 
     const html = await page.content();
+    const parentPlayer = formatter.getPlayerURLSuffix(playerId);
 
     const dateArray = this.getTradeDates(html);
     const dateIndices = this.getDateIndices(dateArray, date);
     const playerURLs = this.getPlayerURLs(dateIndices, html);
-    const loopedData = await this.loopPlayers(playerURLs, date, page, browser);
+
+    const playerParams: IPlayerParams = {
+      parentPlayer,
+      playerURLs,
+      date
+    };
+
+    const pageParams: IPageParams = {
+      page,
+      browser
+    };
+
+    const loopedData = await this.loopPlayers(playerParams, pageParams);
 
     return loopedData;
   }
 
   public async loopPlayers(
-    playerURLs: string[],
-    date: string,
-    page: Page,
-    browser: Browser
+    playerParams: IPlayerParams,
+    pageParams: IPageParams
   ) {
+    const { page, browser } = pageParams;
+    const { playerURLs, parentPlayer, date } = playerParams;
+
     let data: { [player: string]: string[] } = {};
+
     for (const playerURL of playerURLs) {
       await page.goto(`${baseURL}/players/${playerURL}`);
 
       const playerHTML = await page.content();
       const playerName = formatter.getPlayerName(playerHTML);
+      console.log({ playerName });
       const dateArray = this.getTradeDates(playerHTML);
       const dateIndices = this.getDateIndices(dateArray, date);
       const playerURLs = this.getPlayerURLs(dateIndices, playerHTML);
-      const playerHead = playerURLs.findIndex((url) => url === playerDemo) + 1;
+      const playerHead =
+        playerURLs.findIndex((url) => url === parentPlayer) + 1;
+
+      // console.log(tradeService.getAllPlayers(playerHTML, dateIndices));
 
       data[playerName] = playerURLs.slice(playerHead);
     }

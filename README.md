@@ -1,1 +1,3 @@
-http://localhost:5000/api/get-tree?date=2012-07-11
+should add the player we have searched for in each resulting object in /api/search
+
+- reason being is we don't know where the player we searched for went to

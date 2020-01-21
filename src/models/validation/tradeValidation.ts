@@ -1,11 +1,11 @@
-import { query, validationResult, ValidationChain } from 'express-validator';
-import { Request, Response, NextFunction } from 'express';
+import { query, ValidationChain } from 'express-validator';
 
 const dateRegex = /^\d{4}[\/\-](0?[1-9]|1[012])[\/\-](0?[1-9]|[12][0-9]|3[01])$/;
 const idRegex = /^[a-z0-9]+$/i;
 
 const playerIDRules: ValidationChain[] = [
-  query('id').exists()
+  query('id')
+    .exists()
     .withMessage('Missing id.'),
   query('id')
     .isLength({ min: 7, max: 9 })
@@ -27,21 +27,7 @@ const dateRules: ValidationChain[] = [
 ];
 
 const dateQueryValidationRules = (): ValidationChain[] => {
-  return [
-    ...playerIDRules,
-    ...dateRules,
-  ];
+  return [...playerIDRules, ...dateRules];
 };
 
-const validateDateQuery = (req: Request, res: Response, next: NextFunction) => {
-  const errors = validationResult(req);
-  if (errors.isEmpty()) {
-    return next();
-  }
-
-  if (!errors.isEmpty()) {
-    return res.status(422).json({ errors: errors.array() });
-  }
-};
-
-export { dateQueryValidationRules, validateDateQuery };
+export { dateQueryValidationRules };

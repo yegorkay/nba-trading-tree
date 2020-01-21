@@ -142,9 +142,11 @@ class TradeService {
     foundTradeIndices: number[]
   ): PlayerID[][] {
     let results: PlayerID[][] = [];
-    for (let i = 0; i < foundTradeIndices.length; i++) {
-      results.push(this.getPlayerData(html, foundTradeIndices[i] + 1));
-    }
+
+    foundTradeIndices.forEach((tradeIndex) => {
+      results.push(this.getPlayerData(html, tradeIndex + 1));
+    });
+
     return results;
   }
 }

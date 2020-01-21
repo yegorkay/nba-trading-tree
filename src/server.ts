@@ -3,9 +3,8 @@ import express, { Request, Response } from 'express';
 import { tradeController, searchController } from './controllers';
 import {
   dateQueryValidationRules,
-  validateDateQuery,
   searchQueryValidationRules,
-  validateSearchQuery
+  errorHandler
 } from './models';
 
 const app = express();
@@ -16,14 +15,14 @@ middleware(app);
 app.get(
   '/api/get-tree',
   dateQueryValidationRules(),
-  validateDateQuery,
+  errorHandler,
   (req: Request, res: Response) => tradeController.getAllTransactions(req, res)
 );
 
 app.get(
   '/api/get-player',
   searchQueryValidationRules(),
-  validateSearchQuery,
+  errorHandler,
   (req: Request, res: Response) => searchController.getPlayer(req, res)
 );
 

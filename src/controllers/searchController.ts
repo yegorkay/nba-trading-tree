@@ -69,6 +69,8 @@ class SearchController {
 
     const html = await page.content();
 
+    this.checkNoResults(html, res, player);
+
     if (page.url().includes('search')) {
       if ($('.search-item', html).length > 1) {
         const fuzzyPlayerURLResult = this.fuzzyPlayerURL(html, res, player);
@@ -83,6 +85,21 @@ class SearchController {
       const result = await this.getSearchResults(page, html);
       res.send(result);
     }
+  }
+  /**
+   * A check to see if there are no player results on the page.
+   * @param html The resulting HTML of the player we have searched.
+   * @param res The Express Response.
+   * @param player The player query.
+   * @returns A status if there is nothing found.
+   */
+  checkNoResults(html: string, res: Response, player: string): void {
+    const selector = 'h1 + div > p > strong';
+    const resultText = $(selector, html)
+      .text()
+      .toLowerCase();
+    const nothingFound = resultText.includes('examples of successful searches');
+    if (nothingFound) res.status(422).send(errors.playerNotFound(player));
   }
   /**
    * Our primary method to get any trade results from our search.

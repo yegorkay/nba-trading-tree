@@ -1,7 +1,6 @@
 import $ from 'cheerio';
 import moment from 'moment';
-import { transactionSelector } from '../settings';
-import { baseURL } from '../settings';
+import { transactionSelector, baseURL, dateFormat } from '../settings';
 
 class FormatController {
   /**
@@ -13,7 +12,7 @@ class FormatController {
    * // "2006-06-21"
    */
   public formatDate(date: string): string {
-    return moment(new Date(date)).format('YYYY-MM-DD');
+    return moment(new Date(date)).format(dateFormat);
   }
   /**
    * Generates an HTML selector for all players involved in a trade.

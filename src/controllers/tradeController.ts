@@ -3,18 +3,8 @@ import { baseURL } from '../settings';
 import { formatter } from '../utils';
 import { Response, Request } from 'express';
 import $ from 'cheerio';
-import puppeteer, { Page, Browser } from 'puppeteer';
-
-interface IPlayerParams {
-  parentPlayer: string;
-  playerURLs: string[];
-  date: string;
-}
-
-interface IPageParams {
-  page: Page;
-  browser: Browser;
-}
+import puppeteer from 'puppeteer';
+import { IPlayerParams, IPageParams } from '../models';
 
 class TradeController {
   private getDateIndices(dates: string[], dateMatch: string): number[] {

@@ -1,3 +1,3 @@
 export * from './validation';
 export * from './searchModels';
-export * from './settingsModels';
+export * from './tradeModels';

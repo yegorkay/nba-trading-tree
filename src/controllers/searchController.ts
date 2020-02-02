@@ -45,10 +45,9 @@ class SearchController {
     const searchResults = $('.search-item', html).length;
 
     if (searchResults > 1) {
-      const firstResultURL = $(
-        '#players .search-item:first-child .search-item-url',
-        html
-      ).text();
+      const firstResultURL = $('.search-item-name a:nth-child(1)', html).attr(
+        'href'
+      );
       return `${baseURL}${firstResultURL}`;
     } else {
       return res.status(422).send(errors.playerNotFound(player));

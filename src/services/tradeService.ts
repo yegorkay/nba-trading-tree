@@ -22,9 +22,7 @@ class TradeService {
     ).html();
 
     if (transactionHTML) {
-      const isMultiTrade = transactionHTML
-        ?.toLowerCase()
-        .includes('as part of');
+      const isMultiTrade = transactionHTML.toLowerCase().includes('as part of');
       /** Decode any HTML entities so we don't have false
        * positives splitting a string on a semi-colon `(;)` */
       const decodedHTML = isMultiTrade

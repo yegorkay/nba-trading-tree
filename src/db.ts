@@ -1,14 +1,20 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+// // import dotenv from 'dotenv';
+import chalk from 'chalk';
+import { config } from './settings';
+// dotenv.config();
 
-dotenv.config();
+// const dbURL = process.env.DB || '';
 
-const dbURL = process.env.DB || '';
-
-mongoose.connect(dbURL, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(config.db, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
 const db = mongoose.connection;
 
 export const database = () => {
-  db.once('open', () => console.log('Database connected:', dbURL));
-  db.on('error', (err) => console.error('connection error:', err));
+  db.once('open', () =>
+    console.log(chalk.cyan('Database connected:', config.db))
+  );
+  db.on('error', (err) => console.error(chalk.red('connection error:', err)));
 };

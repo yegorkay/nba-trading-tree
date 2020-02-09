@@ -133,13 +133,13 @@ class SearchController {
           await page.goto(fuzzyPlayerURLResult);
           const fuzzyHTML = await page.content();
           const result = await this.getSearchResults(page, fuzzyHTML);
-          // result && (await mongo.insertPlayerInCollection(result));
+          await mongo.insertPlayerInCollection(result);
           res.send(result);
         }
       }
     } else {
       const result = await this.getSearchResults(page, html);
-      // result && (await mongo.insertPlayerInCollection(result));
+      await mongo.insertPlayerInCollection(result);
       res.send(result);
     }
   }

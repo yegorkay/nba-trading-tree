@@ -1,5 +1,6 @@
 import { middleware } from './middleware';
 import { database } from './db';
+import { config } from './settings';
 import express, { Request, Response } from 'express';
 import { tradeController, searchController } from './controllers';
 import {
@@ -7,9 +8,9 @@ import {
   searchQueryValidationRules,
   errorHandler
 } from './models';
+import chalk from 'chalk';
 
 const app = express();
-const PORT: number = 5000;
 
 database();
 middleware(app);
@@ -28,13 +29,17 @@ app.get(
   (req: Request, res: Response) => searchController.getPlayer(req, res)
 );
 
-app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+app.listen(config.port, () =>
+  console.log(chalk.magenta(`Listening on port ${config.port}`))
+);
 
 process.on('uncaughtException', (err) => {
-  console.log(`Caught exception: ${err}`);
+  console.log(chalk.red(`Caught exception: ${err}`));
   process.exit(1);
 });
 process.on('unhandledRejection', (reason, p) => {
-  console.log(`Unhandled Rejection at: Promise, ${p}, reason: ${reason}`);
+  console.log(
+    chalk.red(`Unhandled Rejection at: Promise, ${p}, reason: ${reason}`)
+  );
   process.exit(1);
 });

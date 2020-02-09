@@ -4,7 +4,7 @@ import { tradeController } from './tradeController';
 import { baseURL, searchURL } from '../settings';
 import { Response, Request } from 'express';
 import { transactionSelector } from '../settings';
-import { formatter } from './../utils';
+import { formatter, mongo } from './../utils';
 import $ from 'cheerio';
 import puppeteer, { Page } from 'puppeteer';
 import { PlayerID, ISearchResult, ITradeData } from '../models';
@@ -39,9 +39,9 @@ class SearchController {
     const searchResults = $('.search-item', html).length;
 
     if (searchResults > 1) {
-      const firstResultURL = $(
-        '.search-item:first-of-type .search-item-url'
-      ).text();
+      const firstResultURL = $('.search-item-name a:nth-child(1)', html).attr(
+        'href'
+      );
       return `${baseURL}${firstResultURL}`;
     } else {
       return res.status(422).send(errors.playerNotFound(player));
@@ -117,15 +117,7 @@ class SearchController {
 
     return result;
   }
-  /**
-   * The main controller method used in our route to get the player we searched for.
-   * @param req The Express Request.
-   * @param res The Express Response.
-   * @returns A promise of the resulting player.
-   */
-  public async getPlayer(req: Request, res: Response) {
-    const { player } = req.query;
-
+  async findPlayer(player: string, res: Response) {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     await page.goto(searchURL(player));
@@ -141,12 +133,32 @@ class SearchController {
           await page.goto(fuzzyPlayerURLResult);
           const fuzzyHTML = await page.content();
           const result = await this.getSearchResults(page, fuzzyHTML);
+          // result && (await mongo.insertPlayerInCollection(result));
           res.send(result);
         }
       }
     } else {
       const result = await this.getSearchResults(page, html);
+      // result && (await mongo.insertPlayerInCollection(result));
       res.send(result);
+    }
+  }
+  /**
+   * The main controller method used in our route to get the player we searched for.
+   * @param req The Express Request.
+   * @param res The Express Response.
+   * @returns A promise of the resulting player.
+   */
+  public async getPlayer(req: Request, res: Response) {
+    const { player } = req.query;
+    // first, check the db
+    const dbResults = await mongo.findPlayerInCollection(player);
+    // if not in db, scrape the results
+    if (!dbResults.length) {
+      await this.findPlayer(player, res);
+    } else {
+      // if in db, retrieve from db
+      res.send(dbResults[0]);
     }
   }
 }

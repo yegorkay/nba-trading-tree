@@ -1,4 +1,5 @@
 import { middleware } from './middleware';
+import { database } from './db';
 import express, { Request, Response } from 'express';
 import { tradeController, searchController } from './controllers';
 import {
@@ -10,6 +11,7 @@ import {
 const app = express();
 const PORT: number = 5000;
 
+database();
 middleware(app);
 
 app.get(

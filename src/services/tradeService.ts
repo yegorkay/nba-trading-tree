@@ -183,7 +183,6 @@ class TradeService {
     foundTradeIndices.forEach((tradeIndex) => {
       results.push(this.getPlayerData(html, tradeIndex + 1));
     });
-
     return results;
   }
 }

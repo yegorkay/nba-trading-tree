@@ -54,7 +54,7 @@ class SearchController {
    * @returns A promise of the search results.
    */
   async getSearchResults(page: Page, html: string): Promise<ISearchResult> {
-    const foundTradeIndices = await this.getTradeIndices(page, page.url());
+    const foundTradeIndices = this.getTradeIndices(html);
     const foundTradeDates = tradeController.getTradeDates(html);
     const playerID = new PlayerID(formatter.getPlayerName(html), page.url());
 
@@ -68,28 +68,22 @@ class SearchController {
       playerID,
       trades
     };
-
     return result;
   }
   /**
    * Gets all the occurences of transactions where a trade occured.
-   * @param page The page class provided by puppeteer.
-   * @param url The url of the page we are searching trades for.
+   * @param html The HTML of the page we are searching trades for.
    * @returns A promise that resolves into an array of indices where trades occured.
    */
-  private async getTradeIndices(page: Page, url: string): Promise<number[]> {
-    await page.goto(url);
-    const playerHTML = await page.content();
+  private getTradeIndices(html: string): number[] {
     let tradeIndices: number[] = [];
-    $(transactionSelector, playerHTML).each(
-      (i: number, ele: CheerioElement) => {
-        const isTradeElement = $(ele)
-          .text()
-          .toLowerCase()
-          .includes('traded by');
-        if (isTradeElement) tradeIndices.push(i);
-      }
-    );
+    $(transactionSelector, html).each((i: number, ele: CheerioElement) => {
+      const isTradeElement = $(ele)
+        .text()
+        .toLowerCase()
+        .includes('traded by');
+      if (isTradeElement) tradeIndices.push(i);
+    });
     return tradeIndices;
   }
   /**
@@ -114,9 +108,25 @@ class SearchController {
     foundTradeIndices.forEach((tradeIndex, i) => {
       result[foundTradeDates[tradeIndex]] = foundPlayersArray[i];
     });
-
     return result;
   }
+  /**
+   * Helper that gets results, stores them in the DB, and sends them through the endpoint.
+   * @param page The page class provided by puppeteer.
+   * @param html The HTML of the player page we are searching.
+   * @returns A promise executing either a mongo insertion or response send.
+   */
+  async getResult(page: Page, html: string, res: Response): Promise<void> {
+    const result = await this.getSearchResults(page, html);
+    await mongo.insertPlayerInCollection(result);
+    res.send(result);
+  }
+  /**
+   * The main controller method used in our route to get the player we searched for.
+   * @param player The player search query.
+   * @param res The Express Response.
+   * @returns A promise executing either a mongo insertion or response send.
+   */
   async findPlayer(player: string, res: Response) {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
@@ -132,15 +142,11 @@ class SearchController {
         if (typeof fuzzyPlayerURLResult === 'string') {
           await page.goto(fuzzyPlayerURLResult);
           const fuzzyHTML = await page.content();
-          const result = await this.getSearchResults(page, fuzzyHTML);
-          await mongo.insertPlayerInCollection(result);
-          res.send(result);
+          await this.getResult(page, fuzzyHTML, res);
         }
       }
     } else {
-      const result = await this.getSearchResults(page, html);
-      await mongo.insertPlayerInCollection(result);
-      res.send(result);
+      await this.getResult(page, html, res);
     }
   }
   /**
@@ -151,13 +157,11 @@ class SearchController {
    */
   public async getPlayer(req: Request, res: Response) {
     const { player } = req.query;
-    // first, check the db
     const dbResults = await mongo.findPlayerInCollection(player);
-    // if not in db, scrape the results
-    if (!dbResults.length) {
+    const noDBResults = !dbResults.length;
+    if (noDBResults) {
       await this.findPlayer(player, res);
     } else {
-      // if in db, retrieve from db
       res.send(dbResults[0]);
     }
   }

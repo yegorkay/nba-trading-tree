@@ -9,8 +9,6 @@ mongoose.connect(config.db, {
 const db = mongoose.connection;
 
 export const database = () => {
-  db.once('open', () =>
-    console.log(chalk.cyan('Database connected:', config.db))
-  );
-  db.on('error', (err) => console.error(chalk.red('connection error:', err)));
+  db.once('open', () => console.log(chalk.cyan('Database: [CONNECTED]')));
+  db.on('error', (err) => console.error(chalk.red('Database: [ERROR]', err)));
 };

@@ -1,43 +1,12 @@
 import _ from 'lodash';
+import puppeteer from 'puppeteer';
+import { tradeService } from '../services';
 import { baseURL } from '../settings';
 import { formatter } from '../utils';
 import { Response, Request } from 'express';
-import $ from 'cheerio';
-import puppeteer from 'puppeteer';
 import { IPlayerParams, IPageParams } from '../models';
 
 class TradeController {
-  private getDateIndices(dates: string[], dateMatch: string): number[] {
-    let indexes: number[] = [];
-    dates.forEach((date, i) => {
-      if (date === dateMatch) indexes.push(i + 1);
-    });
-    return indexes;
-  }
-
-  public getTradeDates(html: string): string[] {
-    const transactionDateSelector: string = `#div_transactions span p.transaction strong:first-of-type`;
-    let dateArray: string[] = [];
-    $(transactionDateSelector, html).each((_i: number, ele: CheerioElement) => {
-      return dateArray.push(formatter.formatDate($(ele).text()));
-    });
-
-    return dateArray;
-  }
-
-  public getPlayerURLs(dateIndices: number[], html: string): string[] {
-    const playerURLSelector = formatter.generatePlayerURLSelector(dateIndices);
-
-    let playerURLs: string[] = [];
-
-    $(playerURLSelector, html).each((_i: number, ele: CheerioElement) => {
-      const url = $(ele).attr('href');
-      playerURLs.push(url.split('players/')[1]);
-    });
-
-    return playerURLs;
-  }
-
   private async traverse(playerId: string, date: string) {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
@@ -47,9 +16,9 @@ class TradeController {
     const html = await page.content();
     const parentPlayer = formatter.getPlayerURLSuffix(playerId);
 
-    const dateArray = this.getTradeDates(html);
-    const dateIndices = this.getDateIndices(dateArray, date);
-    const playerURLs = this.getPlayerURLs(dateIndices, html);
+    const dateArray = tradeService.getTradeDates(html);
+    const dateIndices = tradeService.getDateIndices(dateArray, date);
+    const playerURLs = tradeService.getPlayerURLs(dateIndices, html);
 
     const playerParams: IPlayerParams = {
       parentPlayer,
@@ -82,9 +51,9 @@ class TradeController {
       const playerHTML = await page.content();
       const playerName = formatter.getPlayerName(playerHTML);
       console.log({ playerName });
-      const dateArray = this.getTradeDates(playerHTML);
-      const dateIndices = this.getDateIndices(dateArray, date);
-      const playerURLs = this.getPlayerURLs(dateIndices, playerHTML);
+      const dateArray = tradeService.getTradeDates(playerHTML);
+      const dateIndices = tradeService.getDateIndices(dateArray, date);
+      const playerURLs = tradeService.getPlayerURLs(dateIndices, playerHTML);
       const playerHead =
         playerURLs.findIndex((url) => url === parentPlayer) + 1;
 

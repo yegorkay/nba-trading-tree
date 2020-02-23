@@ -1,7 +1,5 @@
 import { formatter } from '../utils';
 /**
-  Construct a PlayerID
-
   @class PlayerID
   @classdesc Generates a PlayerID structure containing all relevant player information.
 

@@ -1,13 +1,11 @@
 import { tradeService } from '../services';
 import { errors } from '../messages';
-import { tradeController } from './tradeController';
 import { baseURL, searchURL } from '../settings';
 import { Response, Request } from 'express';
-import { transactionSelector } from '../settings';
 import { formatter, mongo } from './../utils';
 import $ from 'cheerio';
 import puppeteer, { Page } from 'puppeteer';
-import { PlayerID, ISearchResult, ITradeData } from '../models';
+import { PlayerID, ISearchResult } from '../models';
 
 class SearchController {
   /**
@@ -54,11 +52,11 @@ class SearchController {
    * @returns A promise of the search results.
    */
   async getSearchResults(page: Page, html: string): Promise<ISearchResult> {
-    const foundTradeIndices = this.getTradeIndices(html);
-    const foundTradeDates = tradeController.getTradeDates(html);
+    const foundTradeIndices = tradeService.getTradeIndices(html);
+    const foundTradeDates = tradeService.getTradeDates(html);
     const playerID = new PlayerID(formatter.getPlayerName(html), page.url());
 
-    const trades = this.getTradesInDate(
+    const trades = tradeService.getTradesInDate(
       foundTradeIndices,
       foundTradeDates,
       html
@@ -68,46 +66,6 @@ class SearchController {
       playerID,
       trades
     };
-    return result;
-  }
-  /**
-   * Gets all the occurences of transactions where a trade occured.
-   * @param html The HTML of the page we are searching trades for.
-   * @returns A promise that resolves into an array of indices where trades occured.
-   */
-  private getTradeIndices(html: string): number[] {
-    let tradeIndices: number[] = [];
-    $(transactionSelector, html).each((i: number, ele: CheerioElement) => {
-      const isTradeElement = $(ele)
-        .text()
-        .toLowerCase()
-        .includes('traded by');
-      if (isTradeElement) tradeIndices.push(i);
-    });
-    return tradeIndices;
-  }
-  /**
-   * Used to get any trades that occur within a trade string.
-   * @param foundTradeIndices The trade indices that we have found on the page.
-   * @param foundTradeDates The dates where the trade occured (this is used to name the object by date).
-   * @param html The HTML of the player page we are searching.
-   * @returns All trades that have occured within all trade dates.
-   */
-  getTradesInDate(
-    foundTradeIndices: number[],
-    foundTradeDates: string[],
-    html: string
-  ): ITradeData {
-    let result: ITradeData = {};
-
-    const foundPlayersArray: PlayerID[][] = tradeService.getAllPlayers(
-      html,
-      foundTradeIndices
-    );
-
-    foundTradeIndices.forEach((tradeIndex, i) => {
-      result[foundTradeDates[tradeIndex]] = foundPlayersArray[i];
-    });
     return result;
   }
   /**

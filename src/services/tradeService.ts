@@ -1,187 +1,107 @@
-import { formatter } from './../utils/formatter';
 import $ from 'cheerio';
-import { PlayerID } from '../models';
+import { htmlService } from './htmlService';
+import { formatter } from '../utils';
 import { transactionSelector } from '../settings';
-import he from 'he';
+import { PlayerID, ITradeData } from '../models';
 
 class TradeService {
   /**
-   * Gets the team abbreviation found in a `data-attr` tag for the given HTML.
+   * Converts all found trades into an array of indices.
+   * @param dates The array of date strings.
+   * @param dateMatch The matching date.
+   * @returns Array of found trade indices.
+   */
+  public getDateIndices(dates: string[], dateMatch: string): number[] {
+    let indexes: number[] = [];
+    dates.forEach((date, i) => {
+      if (date === dateMatch) indexes.push(i + 1);
+    });
+    return indexes;
+  }
+  /**
+   * Gets all the player URLs.
    * @param html The HTML context.
-   * @param index Used as part of a CSS selector to find HTML where a trade occurs.
-   * @returns An array of HTML strings.
+   * @returns Array of found trade dates.
    */
-  private splitHTML(html: string, index?: number): string[] {
-    /** If the index is not passed, we are reading already parsed HTML,
-     * and more likely an HTML string that was a part of a multi-team trade */
-    if (!index) return html.split('to the ');
-
-    const transactionHTML = $(
-      `${transactionSelector}:nth-child(${index})`,
-      html
-    ).html();
-
-    if (transactionHTML) {
-      const isMultiTrade = transactionHTML.toLowerCase().includes('as part of');
-      /** Decode any HTML entities so we don't have false
-       * positives splitting a string on a semi-colon `(;)` */
-      const decodedHTML = isMultiTrade
-        ? he.decode(transactionHTML)
-        : transactionHTML;
-      const splitKey = isMultiTrade ? '; ' : 'to the ';
-      return decodedHTML.split(splitKey);
-    } else {
-      return [];
-    }
-  }
-  /**
-   * Gets the team abbreviation found in a `data-attr` tag for the given HTML.
-   * @param context The HTML context in which we are finding the selected team in a string.
-   * @param to The team side which we are selected. Either `tradedFrom` or `tradedTo`.
-   * @returns The team abbreviation found in the HTML.
-   * @example
-   * getTeam('<a data-attr-to="PHI" /><a data-attr-from="CLE" />');
-   * // "CLE"
-   * getTeam('<a data-attr-to="PHI" /><a data-attr-from="CLE" />', true);
-   * // "PHI"
-   */
-  private getTeam(context: string, to = false): string {
-    const side = to ? 'to' : 'from';
-    return $(`a[data-attr-${side}]`, context).attr(`data-attr-${side}`);
-  }
-  /**
-   * Gets the players involved in a trade for one side of the trade.
-   * Either the players who were `tradedFrom` a team, or `tradedTo` a team.
-   * @param tradedFromCtx The side of the HTML where `traded from` occurs.
-   * @param tradedToCtx The side of the HTML where `traded to` occurs.
-   * @param swap An optional argument that swaps the teams involved.
-   * @returns An array of PlayerIDs.
-   */
-  private getPlayersInSection(
-    tradedFromCtx: string,
-    tradedToCtx: string,
-    swap = false
-  ): PlayerID[] {
-    const data: PlayerID[] = [];
-    const htmlCtx = swap ? tradedToCtx : tradedFromCtx;
-    $('a[href*="players"]', htmlCtx).each((_i: number, ele: CheerioElement) => {
-      const tradedFrom = swap
-        ? this.getTeam(tradedToCtx, true)
-        : this.getTeam(tradedFromCtx);
-
-      const tradedTo = swap
-        ? this.getTeam(tradedFromCtx, !swap)
-        : this.getTeam(tradedToCtx, true);
-
-      const player = new PlayerID(
-        $(ele).text(),
-        $(ele).attr('href'),
-        tradedFrom,
-        tradedTo
-      );
-
-      data.push(player);
+  public getTradeDates(html: string): string[] {
+    const transactionDateSelector: string = `#div_transactions span p.transaction strong:first-of-type`;
+    let dateArray: string[] = [];
+    $(transactionDateSelector, html).each((_i: number, ele: CheerioElement) => {
+      return dateArray.push(formatter.formatDate($(ele).text()));
     });
-    return data;
+
+    return dateArray;
   }
   /**
-   * Gets all players involved in a multi-team trade for a given date.
-   * @param dividedTradeHTML The array of HTML trade strings.
-   * @param playerSearchHTML The html of the player we are searching for. This is used to append their information in the search result.
-   * @returns An array of PlayerIDs.
+   * Gets all the player URLs.
+   * @param dateIndices The array of data indices where trades were found.
+   * @returns Array of player URLs.
    */
-  private getMultiTradeData(
-    dividedTradeHTML: string[],
-    playerSearchHTML: string
-  ): PlayerID[] {
-    const splitHTMLData: string[][] = [];
-    const playerData: PlayerID[] = [];
+  public getPlayerURLs(dateIndices: number[], html: string): string[] {
+    const playerURLSelector = formatter.generatePlayerURLSelector(dateIndices);
 
-    dividedTradeHTML.forEach((html) => {
-      const splitHTML = this.splitHTML(html);
-      splitHTMLData.push(splitHTML);
+    let playerURLs: string[] = [];
+
+    $(playerURLSelector, html).each((_i: number, ele: CheerioElement) => {
+      const url = $(ele).attr('href');
+      playerURLs.push(url.split('players/')[1]);
     });
-    // ! inefficient On^2  going on here.
-    splitHTMLData.forEach((html: string[], i: number) => {
-      const [tradedFrom, tradedTo] = html;
-      /** This variable is used so we don't push in the player we searched
-       * for multiple times. The player we searched for is always the first
-       * player in the search result */
-      const isFirstTrade = i === 0;
-      const searchedPlayer = this.getSearchedPlayerData(playerSearchHTML, html);
-      const tradeData = [
-        ...this.getPlayersInSection(tradedFrom, tradedTo),
-        ...this.getPlayersInSection(tradedFrom, tradedTo, true)
-      ];
 
-      if (isFirstTrade) playerData.push(searchedPlayer);
-
-      playerData.push(...tradeData);
+    return playerURLs;
+  }
+  /**
+   * Gets all the occurences of transactions where a trade occured.
+   * @param html The HTML of the page we are searching trades for.
+   * @returns A promise that resolves into an array of indices where trades occured.
+   */
+  public getTradeIndices(html: string): number[] {
+    let tradeIndices: number[] = [];
+    $(transactionSelector, html).each((i: number, ele: CheerioElement) => {
+      const isTradeElement = $(ele)
+        .text()
+        .toLowerCase()
+        .includes('traded by');
+      if (isTradeElement) tradeIndices.push(i);
     });
-    return playerData;
+    return tradeIndices;
   }
   /**
-   * Gets all players involved in a trade for a given date.
-   * @param playerHTML The HTML page of the player we have searched for.
-   * @param index The index is used as an argument for `splitHTML(html, index)`
-   * which is used to find HTML where a trade occurs.
-   * @returns An array of PlayerIDs.
+   * Used to get any trades that occur within a trade string.
+   * @param foundTradeIndices The trade indices that we have found on the page.
+   * @param foundTradeDates The dates where the trade occured (this is used to name the object by date).
+   * @param html The HTML of the player page we are searching.
+   * @returns All trades that have occured within all trade dates.
    */
-  private getPlayerData(playerHTML: string, index: number): PlayerID[] {
-    const splitHTML = this.splitHTML(playerHTML, index);
-    if (splitHTML.length > 0) {
-      const normalTrade = splitHTML.length === 2;
-      if (normalTrade) {
-        const [tradedFrom, tradedTo] = splitHTML;
-        const tradeData = [
-          /** Appending the searched player to the beginning of the resulting array. */
-          this.getSearchedPlayerData(playerHTML, splitHTML),
-          ...this.getPlayersInSection(tradedFrom, tradedTo),
-          ...this.getPlayersInSection(tradedFrom, tradedTo, true)
-        ];
-        return tradeData;
-      } else {
-        const multiTradeData = this.getMultiTradeData(splitHTML, playerHTML);
-        return multiTradeData;
-      }
-    }
-    return [];
-  }
-  /**
-   * Gets the information for the player that we searched.
-   * @param playerHTML The HTML page of the player we have searched for.
-   * @param splitHTML The split HTML where one side of the array denotes `tradedFrom`, and the other `tradedTo`.
-   * @returns The PlayerID.
-   * @example
-   * PlayerID {
-        "name": "Kawhi Leonard",
-        "url": "l/leonaka01.html",
-        "tradedFrom": "SAS",
-        "tradedTo": "TOR"
-      }
-   */
-  getSearchedPlayerData(playerHTML: string, splitHTML: string[]): PlayerID {
-    const [tradedFrom, tradedTo] = splitHTML;
-    return new PlayerID(
-      formatter.getPlayerName(playerHTML),
-      $('#inner_nav > ul > li.current > a', playerHTML).attr('href'),
-      this.getTeam(tradedFrom),
-      this.getTeam(tradedTo, true)
+  public getTradesInDate(
+    foundTradeIndices: number[],
+    foundTradeDates: string[],
+    html: string
+  ): ITradeData {
+    let result: ITradeData = {};
+
+    const foundPlayersArray: PlayerID[][] = this.getPlayersInTrade(
+      html,
+      foundTradeIndices
     );
+
+    foundTradeIndices.forEach((tradeIndex, i) => {
+      result[foundTradeDates[tradeIndex]] = foundPlayersArray[i];
+    });
+    return result;
   }
   /**
    * Gets all players that were ever involved in a trade.
    * @param html The HTML page of the player we have searched for.
    * @returns An array of PlayerID arrays, where each array is a trade date found.
    */
-  public getAllPlayers(
+  public getPlayersInTrade(
     html: string,
     foundTradeIndices: number[]
   ): PlayerID[][] {
     let results: PlayerID[][] = [];
 
     foundTradeIndices.forEach((tradeIndex) => {
-      results.push(this.getPlayerData(html, tradeIndex + 1));
+      results.push(htmlService.findPlayers(html, tradeIndex + 1));
     });
     return results;
   }

@@ -1,4 +1,4 @@
-# NBA Trade Tree
+# NBA Trading Tree
 
 - Currently a NodeJS API that can return trade search results, and the resulting trade tree of a player we search for.
 
